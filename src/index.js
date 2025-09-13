@@ -1,41 +1,29 @@
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
+const usuarioRoutes = require('./routes/usuarios.routes');
+const proveedorRoutes = require('./routes/proveedores.routes');
+const clienteRoutes = require('./routes/clientes.routes');
+const categoriaRoutes = require('./routes/categorias.routes');
+const devolucionesRoutes = require('./routes/devoluciones.routes');
 
-
-dotenv.config();
-
+const productoRoutes = require('./routes/producto.routes');
+const compraRoutes = require('./routes/compra.routes');
 
 const app = express();
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
-
 // Rutas
-const usuarioRoutes = require('../src/routes/usuarioRoutes');
 app.use('/api/usuarios', usuarioRoutes);
+app.use('/api/proveedores', proveedorRoutes);
+app.use('/api/clientes', clienteRoutes);
+app.use('/api/categorias', categoriaRoutes);
+app.use('/api/devoluciones', devolucionesRoutes);
 
+app.use('/api/productos', productoRoutes);
+app.use('/api/compras', compraRoutes);
 
-// Healthcheck
-app.get('/api/health', (req, res) => {
-res.json({ ok: true, status: 'UP', timestamp: new Date().toISOString() });
-});
-
-
-// Manejo básico de 404
-app.use((req, res, next) => {
-res.status(404).json({ ok: false, message: 'Ruta no encontrada' });
-});
-
-
-// Manejo básico de errores
-app.use((err, req, res, next) => {
-console.error(err);
-res.status(err.status || 500).json({ ok: false, message: err.message || 'Error interno del servidor' });
-});
-
-
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-console.log(`Servidor escuchando en puerto ${PORT}`);
-});
+// Servidor
+app.listen(3000, () => console.log('Servidor corriendo en puerto 3000'));
