@@ -1,14 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const {
-  obtenerCompras,
-  obtenerCompra,
-  crearCompra
-} = require("../controllers/compra.controller");
+const compraController = require("../controllers/compra.controller");
 
-// Rutas
-router.get("/", obtenerCompras);          // Listar todas las compras
-router.get("/:id", obtenerCompra);        // Obtener compra por ID
-router.post("/", crearCompra);            // Crear compra con detalles
+router.get("/", compraController.obtenerCompras);
+router.post("/", compraController.crearCompra);
 
 module.exports = router;
