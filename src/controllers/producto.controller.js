@@ -84,7 +84,6 @@ exports.actualizarProducto = async (req, res) => {
   } = req.body;
 
   try {
-    // Verificar si existe
     const existe = await pool.query(
       "SELECT idproducto FROM producto WHERE idproducto = $1",
       [id]
@@ -128,7 +127,6 @@ exports.actualizarProducto = async (req, res) => {
 exports.eliminarProducto = async (req, res) => {
   const { id } = req.params;
   try {
-    // Verificar si existe
     const existe = await pool.query(
       "SELECT idproducto FROM producto WHERE idproducto = $1",
       [id]
@@ -143,5 +141,34 @@ exports.eliminarProducto = async (req, res) => {
   } catch (error) {
     console.error("Error al eliminar producto:", error);
     res.status(500).json({ error: "Error al eliminar producto" });
+  }
+};
+
+// =======================
+// OBTENER PRODUCTO POR CÓDIGO
+// =======================
+exports.obtenerProductoPorCodigo = async (req, res) => {
+  const { codigo } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT p.idproducto, p.codigo, p.nombre, p.bulto, p.detalle, p.presentacion,
+              p.observaciones, p.fecha_vencimiento, p.stock,
+              c.idcategoria, c.nombre AS categoria,
+              pr.idprov, pr.nombre AS proveedor
+       FROM producto p
+       JOIN categoria c ON p.idcategoria = c.idcategoria
+       JOIN proveedor pr ON p.idprov = pr.idprov
+       WHERE p.codigo = $1`,
+      [codigo]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Producto no encontrado" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error al obtener producto por código:", error);
+    res.status(500).json({ error: "Error al obtener producto" });
   }
 };

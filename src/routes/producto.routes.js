@@ -7,4 +7,8 @@ router.post("/", productoController.crearProducto);
 router.put("/:id", productoController.actualizarProducto);
 router.delete("/:id", productoController.eliminarProducto);
 
+// ruta para buscar producto por código
+router.get("/codigo/:codigo", productoController.obtenerProductoPorCodigo);
+
+
 module.exports = router;
