@@ -7,7 +7,7 @@ exports.obtenerProductos = async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT p.idproducto, p.codigo, p.nombre, p.bulto, p.detalle, p.presentacion,
-             p.observaciones, p.fecha_vencimiento, p.stock,
+             p.observaciones, p.fecha_vencimiento, p.stock, p.precio_venta,
              c.idcategoria, c.nombre AS categoria,
              pr.idprov, pr.nombre AS proveedor
       FROM producto p
@@ -36,14 +36,15 @@ exports.crearProducto = async (req, res) => {
       observaciones,
       fecha_vencimiento,
       stock,
+      precio_venta, // <---- AGREGADO
       idcategoria,
       idprov,
     } = req.body;
 
     const result = await pool.query(
       `INSERT INTO producto (codigo, nombre, bulto, detalle, presentacion, observaciones,
-        fecha_vencimiento, stock, idcategoria, idprov)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+        fecha_vencimiento, stock, precio_venta, idcategoria, idprov)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
       [
         codigo,
         nombre,
@@ -53,6 +54,7 @@ exports.crearProducto = async (req, res) => {
         observaciones || null,
         fecha_vencimiento || null,
         stock || 0,
+        precio_venta || null,
         idcategoria,
         idprov,
       ]
@@ -79,6 +81,7 @@ exports.actualizarProducto = async (req, res) => {
     observaciones,
     fecha_vencimiento,
     stock,
+    precio_venta, // <---- AGREGADO
     idcategoria,
     idprov,
   } = req.body;
@@ -97,8 +100,8 @@ exports.actualizarProducto = async (req, res) => {
       `UPDATE producto
        SET codigo = $1, nombre = $2, bulto = $3, detalle = $4,
            presentacion = $5, observaciones = $6, fecha_vencimiento = $7,
-           stock = $8, idcategoria = $9, idprov = $10
-       WHERE idproducto = $11 RETURNING *`,
+           stock = $8, precio_venta = $9, idcategoria = $10, idprov = $11
+       WHERE idproducto = $12 RETURNING *`,
       [
         codigo,
         nombre,
@@ -108,6 +111,7 @@ exports.actualizarProducto = async (req, res) => {
         observaciones || null,
         fecha_vencimiento || null,
         stock,
+        precio_venta || null,
         idcategoria,
         idprov,
         id,
@@ -152,7 +156,7 @@ exports.obtenerProductoPorCodigo = async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT p.idproducto, p.codigo, p.nombre, p.bulto, p.detalle, p.presentacion,
-              p.observaciones, p.fecha_vencimiento, p.stock,
+              p.observaciones, p.fecha_vencimiento, p.stock, p.precio_venta,
               c.idcategoria, c.nombre AS categoria,
               pr.idprov, pr.nombre AS proveedor
        FROM producto p
@@ -172,3 +176,28 @@ exports.obtenerProductoPorCodigo = async (req, res) => {
     res.status(500).json({ error: "Error al obtener producto" });
   }
 };
+
+// =======================
+// ACTUALIZAR SOLO PRECIO DE VENTA
+// =======================
+exports.actualizarPrecioVenta = async (req, res) => {
+  const { id } = req.params;
+  const { precio_venta } = req.body;
+
+  try {
+    const result = await pool.query(
+      "UPDATE producto SET precio_venta = $1 WHERE idproducto = $2 RETURNING *",
+      [precio_venta, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Producto no encontrado" });
+    }
+
+    res.json({ message: "Precio de venta actualizado", producto: result.rows[0] });
+  } catch (error) {
+    console.error("Error al actualizar precio de venta:", error);
+    res.status(500).json({ error: "Error al actualizar precio de venta" });
+  }
+};
+

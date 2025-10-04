@@ -8,6 +8,9 @@ const devolucionesRoutes = require('./routes/devoluciones.routes');
 
 const productoRoutes = require('./routes/producto.routes');
 const compraRoutes = require('./routes/compra.routes');
+
+const ventaRoutes = require('./routes/ventas.routes');
+
 const reporteRoutes = require('./routes/reportes.routes');
 
 const app = express();
@@ -25,6 +28,9 @@ app.use('/api/devoluciones', devolucionesRoutes);
 
 app.use('/api/productos', productoRoutes);
 app.use('/api/compras', compraRoutes);
+
+app.use('/api/ventas', ventaRoutes);
+
 app.use('/api/reportes', reporteRoutes);
 
 
