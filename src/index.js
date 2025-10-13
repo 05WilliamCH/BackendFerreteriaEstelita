@@ -13,6 +13,8 @@ const ventaRoutes = require('./routes/ventas.routes');
 
 const reporteRoutes = require('./routes/reportes.routes');
 
+const reportecompraRoutes = require('./routes/reportecompras.routes');
+
 const app = express();
 
 // Middlewares
@@ -32,6 +34,8 @@ app.use('/api/compras', compraRoutes);
 app.use('/api/ventas', ventaRoutes);
 
 app.use('/api/reportes', reporteRoutes);
+
+app.use('/api/reportecompras', reportecompraRoutes);
 
 
 // Servidor
