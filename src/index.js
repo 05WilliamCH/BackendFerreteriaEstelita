@@ -14,6 +14,9 @@ const ventaRoutes = require('./routes/ventas.routes');
 const reporteRoutes = require('./routes/reportes.routes');
 
 const reportecompraRoutes = require('./routes/reportecompras.routes');
+const reporteventaRoutes = require('./routes/reporteventas.routes');
+
+const cajaRoutes = require('./routes/caja.routes');
 
 const app = express();
 
@@ -36,6 +39,8 @@ app.use('/api/ventas', ventaRoutes);
 app.use('/api/reportes', reporteRoutes);
 
 app.use('/api/reportecompras', reportecompraRoutes);
+app.use('/api/reporteventas', reporteventaRoutes);
+app.use('/api/caja', cajaRoutes);
 
 
 // Servidor
