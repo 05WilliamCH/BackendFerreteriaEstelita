@@ -18,6 +18,8 @@ const reporteventaRoutes = require('./routes/reporteventas.routes');
 
 const cajaRoutes = require('./routes/caja.routes');
 
+const dashboardRoutes = require('./routes/dashboard.routes');
+
 const app = express();
 
 // Middlewares
@@ -41,6 +43,8 @@ app.use('/api/reportes', reporteRoutes);
 app.use('/api/reportecompras', reportecompraRoutes);
 app.use('/api/reporteventas', reporteventaRoutes);
 app.use('/api/caja', cajaRoutes);
+
+app.use('/api/dashboard', dashboardRoutes);
 
 
 // Servidor

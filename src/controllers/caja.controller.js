@@ -25,9 +25,18 @@ exports.abrirCaja = async (req, res) => {
       [idusuario, monto_inicial]
     );
 
+    // Obtener nombre del usuario que abrió la caja
+    const usuario = await pool.query(
+      "SELECT nombre FROM usuario WHERE idusuario = $1",
+      [idusuario]
+    );
+
     res.json({
       message: "Caja abierta correctamente.",
-      caja: nuevaCaja.rows[0],
+      caja: {
+        ...nuevaCaja.rows[0],
+        usuario_apertura: usuario.rows[0]?.nombre || "Administrador"
+      },
     });
   } catch (error) {
     console.error(error);
@@ -53,7 +62,9 @@ exports.cerrarCaja = async (req, res) => {
     const caja = cajaAbierta.rows[0];
 
     // Calcular diferencia
-    const diferencia = parseFloat(monto_final) - (parseFloat(caja.monto_inicial) + parseFloat(caja.total_ventas));
+    const diferencia =
+      parseFloat(monto_final) -
+      (parseFloat(caja.monto_inicial) + parseFloat(caja.total_ventas || 0));
 
     const cerrar = await pool.query(
       `UPDATE caja
@@ -66,10 +77,20 @@ exports.cerrarCaja = async (req, res) => {
       [monto_final, observaciones || `Diferencia: Q${diferencia.toFixed(2)}`, caja.idcaja]
     );
 
+    // Obtener nombre del usuario que abrió la caja
+    const usuario = await pool.query(
+      "SELECT nombre FROM usuario WHERE idusuario = $1",
+      [cerrar.rows[0].idusuario]
+    );
+
     res.json({
       message: "Caja cerrada correctamente.",
-      caja: cerrar.rows[0],
+      caja: {
+        ...cerrar.rows[0],
+        usuario_apertura: usuario.rows[0]?.nombre || "Administrador"
+      },
       diferencia: diferencia.toFixed(2),
+      fecha_cierre: cerrar.rows[0].fecha_cierre
     });
   } catch (error) {
     console.error(error);
@@ -90,9 +111,20 @@ exports.estadoCaja = async (req, res) => {
       return res.json({ abierta: false });
     }
 
+    const caja = result.rows[0];
+
+    // Obtener nombre del usuario que abrió la caja
+    const usuario = await pool.query(
+      "SELECT nombre FROM usuario WHERE idusuario = $1",
+      [caja.idusuario]
+    );
+
     res.json({
       abierta: true,
-      caja: result.rows[0],
+      caja: {
+        ...caja,
+        usuario_apertura: usuario.rows[0]?.nombre || "Administrador"
+      },
     });
   } catch (error) {
     console.error(error);
@@ -116,7 +148,7 @@ exports.sumarVenta = async (req, res) => {
     }
 
     const caja = abierta.rows[0];
-    const nuevoTotal = parseFloat(caja.total_ventas) + parseFloat(monto);
+    const nuevoTotal = parseFloat(caja.total_ventas || 0) + parseFloat(monto);
 
     await pool.query(
       "UPDATE caja SET total_ventas = $1 WHERE idcaja = $2",
@@ -127,5 +159,70 @@ exports.sumarVenta = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error al sumar venta a la caja." });
+  }
+};
+
+// ========================
+// REPORTE / HISTORIAL DE CAJAS
+// ========================
+exports.reporteCajas = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        c.idcaja,
+        u.nombre AS usuario_apertura,
+        c.fecha_apertura,
+        c.fecha_cierre,
+        c.monto_inicial,
+        c.total_ventas,
+        c.monto_final,
+        c.estado,
+        c.observaciones
+      FROM caja c
+      JOIN usuario u ON c.idusuario = u.idusuario
+      ORDER BY c.fecha_apertura DESC
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error al generar el reporte de cajas." });
+  }
+};
+
+
+exports.reporteCajasPorFechas = async (req, res) => {
+  let { fechaInicio, fechaFin } = req.query;
+  try {
+    if (!fechaInicio || !fechaFin) {
+      return res.status(400).json({ error: "Debe especificar ambas fechas" });
+    }
+
+    // 🔧 Rango completo del día (00:00:00 - 23:59:59)
+    fechaInicio = `${fechaInicio} 00:00:00`;
+    fechaFin = `${fechaFin} 23:59:59`;
+
+    const query = `
+      SELECT 
+        c.idcaja,
+        u.nombre AS usuario_apertura,
+        c.fecha_apertura,
+        c.fecha_cierre,
+        c.monto_inicial,
+        c.total_ventas,
+        c.monto_final,
+        c.estado,
+        c.observaciones
+      FROM caja c
+      JOIN usuario u ON c.idusuario = u.idusuario
+      WHERE c.fecha_apertura BETWEEN $1 AND $2
+      ORDER BY c.fecha_apertura DESC
+    `;
+
+    const result = await pool.query(query, [fechaInicio, fechaFin]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error en reporte de cajas por fechas:", error);
+    res.status(500).json({ error: "Error al obtener el reporte de cajas" });
   }
 };

@@ -7,4 +7,8 @@ router.post("/cerrar", cajaController.cerrarCaja);
 router.get("/estado", cajaController.estadoCaja);
 router.post("/sumarVenta", cajaController.sumarVenta);
 
+router.get("/reporte", cajaController.reporteCajas);
+router.get("/reporte/fechas", cajaController.reporteCajasPorFechas);
+
+
 module.exports = router;
