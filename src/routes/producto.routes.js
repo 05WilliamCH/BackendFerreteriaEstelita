@@ -9,6 +9,7 @@ router.delete("/:id", productoController.eliminarProducto);
 
 // ruta para buscar producto por código
 router.get("/codigo/:codigo", productoController.obtenerProductoPorCodigo);
+router.get("/buscar", productoController.buscarProductoPorNombre); // Buscar producto por nombre (autocompletar)
 
 // RUTA en productRoutes.js
 router.put("/producto/:id/precio", productoController.actualizarPrecioVenta);

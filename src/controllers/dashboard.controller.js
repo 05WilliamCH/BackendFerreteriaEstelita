@@ -3,7 +3,13 @@ const pool = require("../db");
 // Obtener datos generales para el dashboard
 exports.obtenerDatosDashboard = async (req, res) => {
   try {
-    const [ventasSemana, totales, productosPorCategoria, ventasHoy] = await Promise.all([
+    const [
+      ventasSemana,
+      totales,
+      productosPorCategoria,
+      ventasHoy,
+      cantidadVentasHoy
+    ] = await Promise.all([
       // Ventas últimos 7 días
       pool.query(`
         SELECT 
@@ -22,12 +28,14 @@ exports.obtenerDatosDashboard = async (req, res) => {
         GROUP BY dia, EXTRACT(DOW FROM fecha)
         ORDER BY EXTRACT(DOW FROM fecha);
       `),
+
       // Totales generales (productos y categorías)
       pool.query(`
         SELECT 
           (SELECT COUNT(*) FROM producto) AS total_productos,
           (SELECT COUNT(*) FROM categoria) AS total_categorias
       `),
+
       // Productos por categoría
       pool.query(`
         SELECT c.nombre AS nombre_categoria, COUNT(p.idproducto) AS cantidad
@@ -36,9 +44,17 @@ exports.obtenerDatosDashboard = async (req, res) => {
         GROUP BY c.idcategoria, c.nombre
         ORDER BY c.nombre;
       `),
-      // Ventas del día
+
+      // Total de ventas del día (en dinero)
       pool.query(`
         SELECT COALESCE(SUM(total), 0) AS total_ventas_hoy
+        FROM venta
+        WHERE fecha::date = CURRENT_DATE;
+      `),
+
+      // Cantidad de ventas del día (número de facturas)
+      pool.query(`
+        SELECT COUNT(*) AS cantidad_ventas_hoy
         FROM venta
         WHERE fecha::date = CURRENT_DATE;
       `)
@@ -48,7 +64,8 @@ exports.obtenerDatosDashboard = async (req, res) => {
       ventasSemana: ventasSemana.rows,
       totales: totales.rows[0],
       productosPorCategoria: productosPorCategoria.rows,
-      ventasHoy: ventasHoy.rows[0].total_ventas_hoy
+      ventasHoy: ventasHoy.rows[0].total_ventas_hoy,
+      cantidadVentasHoy: cantidadVentasHoy.rows[0].cantidad_ventas_hoy
     });
 
   } catch (error) {

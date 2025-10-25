@@ -6,7 +6,8 @@ const pool = require("../db");
 exports.crearCompra = async (req, res) => {
   const client = await pool.connect();
   try {
-    const { idprov, fecha, total, productos } = req.body;
+    const { idprov, idusuario, fecha, total, productos } = req.body;
+
     if (!idprov || !productos || productos.length === 0)
       return res.status(400).json({ error: "Faltan datos de proveedor o productos" });
 
@@ -14,12 +15,12 @@ exports.crearCompra = async (req, res) => {
 
     // Insertar compra
     const compraRes = await client.query(
-      `INSERT INTO compra (idprov, fecha, total)
-       VALUES ($1, $2, $3) RETURNING idcompra`,
-      [idprov, fecha || new Date(), total || 0]
+      `INSERT INTO compra (idprov, idusuario, fecha, total)
+       VALUES ($1, $2, $3, $4) RETURNING idcompra`,
+      [idprov, idusuario || null, fecha || new Date(), total || 0]
     );
-    const idcompra = compraRes.rows[0].idcompra;
 
+    const idcompra = compraRes.rows[0].idcompra;
     const productosGuardados = [];
 
     for (const p of productos) {
@@ -43,6 +44,7 @@ exports.crearCompra = async (req, res) => {
         );
         idproducto = prodRes.rows[0].idproducto;
       } else {
+      
         // Actualizar stock existente solo sumando la cantidad nueva
         await client.query(
           `UPDATE producto SET stock = stock + $1 WHERE idproducto = $2`,
@@ -70,7 +72,7 @@ exports.crearCompra = async (req, res) => {
     await client.query("COMMIT");
     res.status(201).json({
       message: "Compra registrada correctamente",
-      compra: { idcompra, idprov, fecha, total, productos: productosGuardados },
+      compra: { idcompra, idprov, idusuario, fecha, total, productos: productosGuardados },
     });
 
   } catch (error) {
@@ -186,9 +188,12 @@ exports.editarCompra = async (req, res) => {
 exports.obtenerCompras = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT c.idcompra, c.fecha, c.total, pr.nombre AS proveedor
+      SELECT c.idcompra, c.fecha, c.total,
+             pr.nombre AS proveedor,
+             u.nombre AS usuario
       FROM compra c
       INNER JOIN proveedor pr ON c.idprov = pr.idprov
+      LEFT JOIN usuario u ON c.idusuario = u.idusuario
       ORDER BY c.fecha DESC, c.idcompra DESC
     `);
     res.json(result.rows);

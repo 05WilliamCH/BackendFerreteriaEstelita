@@ -177,6 +177,34 @@ exports.obtenerProductoPorCodigo = async (req, res) => {
   }
 };
 
+// ========================
+// BUSCAR PRODUCTO POR NOMBRE (PARA AUTOCOMPLETAR)
+// ========================
+exports.buscarProductoPorNombre = async (req, res) => {
+  try {
+    const { nombre } = req.query;
+
+    if (!nombre || nombre.trim().length < 3) {
+      return res.status(400).json({ error: "Debe proporcionar al menos 3 caracteres" });
+    }
+
+    const result = await pool.query(
+      `SELECT idproducto, codigo, nombre, idcategoria, bulto, detalle, precio_venta, stock
+       FROM producto
+       WHERE LOWER(nombre) LIKE LOWER($1)
+       ORDER BY nombre ASC
+       LIMIT 10`,
+      [`%${nombre}%`]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error buscando productos por nombre:", error);
+    res.status(500).json({ error: "No se pudo buscar el producto" });
+  }
+};
+
+
 // =======================
 // ACTUALIZAR SOLO PRECIO DE VENTA
 // =======================

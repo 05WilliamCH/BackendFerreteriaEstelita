@@ -119,13 +119,25 @@ exports.crearVenta = async (req, res) => {
       telefono: "N/A",
     };
 
+     // ========================
+    // 9️⃣ Obtener datos del usuario (nuevo)
     // ========================
-    // 9️⃣ Confirmar transacción
+    const usuarioRes = await client.query(
+      `SELECT idusuario, nombre, email 
+       FROM usuario WHERE idusuario = $1`,
+      [idusuario]
+    );
+
+    const usuario =
+      usuarioRes.rows[0] || { nombre: "Desconocido", email: "-" };
+
+    // ========================
+    // 10️⃣ Confirmar transacción
     // ========================
     await client.query("COMMIT");
 
     // ========================
-    // 10️⃣ Respuesta al frontend
+    // 11️⃣ Respuesta al frontend
     // ========================
     res.status(201).json({
       message: "Venta registrada correctamente",
@@ -137,6 +149,7 @@ exports.crearVenta = async (req, res) => {
         montorecibido: montorecibido || total,
         vuelto: vuelto || (montorecibido ? montorecibido - total : 0),
         cliente,
+        usuario,
         productos: productosGuardados,
         idcaja
       },
@@ -158,9 +171,11 @@ exports.obtenerVentas = async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT v.idventa, v.fecha, v.total, v.numerofactura, v.montorecibido, v.vuelto,
-              c.nombre AS cliente, c.nit, c.direccion, c.telefono, v.idcaja
+              c.nombre AS cliente, c.nit, c.direccion, c.telefono, 
+              u.nombre As usuario, v.idcaja
        FROM venta v
        LEFT JOIN cliente c ON v.idcliente = c.idcliente
+       LEFT JOIN usuario u ON v.idusuario = u.idusuario
        ORDER BY v.fecha DESC, v.idventa DESC`
     );
     res.json(result.rows);
