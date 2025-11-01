@@ -20,6 +20,12 @@ const cajaRoutes = require('./routes/caja.routes');
 
 const dashboardRoutes = require('./routes/dashboard.routes');
 
+const kardexRoutes = require('./routes/kardex.routes');
+
+const inventarioRoutes = require('./routes/invdashboard.routes');
+
+const ventaDetalleRoutes = require('./routes/ventaDetalle.route');
+
 const app = express();
 
 // Middlewares
@@ -45,6 +51,12 @@ app.use('/api/reporteventas', reporteventaRoutes);
 app.use('/api/caja', cajaRoutes);
 
 app.use('/api/dashboard', dashboardRoutes);
+
+app.use('/api/kardex', kardexRoutes);
+
+app.use('/api/inventario', inventarioRoutes);
+
+app.use('/api/ventas', ventaDetalleRoutes);
 
 
 // Servidor
