@@ -1,7 +1,7 @@
 const pool = require("../db");
 
 // ========================
-// CREAR NUEVA COMPRA
+// CREAR NUEVA COMPRA (con numerocompra)
 // ========================
 exports.crearCompra = async (req, res) => {
   const client = await pool.connect();
@@ -13,11 +13,25 @@ exports.crearCompra = async (req, res) => {
 
     await client.query("BEGIN");
 
+    // 🔹 Generar numerocompra automático
+    const fechaHoy = new Date();
+    const fechaStr = fechaHoy.toISOString().slice(0, 10).replace(/-/g, "");
+    const lastCompraRes = await client.query(
+      `SELECT numerocompra FROM compra WHERE numerocompra LIKE $1 ORDER BY idcompra DESC LIMIT 1`,
+      [`COMP-${fechaStr}-%`]
+    );
+    let nextNumber = 1;
+    if (lastCompraRes.rows.length > 0) {
+      const lastNum = lastCompraRes.rows[0].numerocompra.split("-")[2];
+      nextNumber = parseInt(lastNum) + 1;
+    }
+    const numerocompra = `COMP-${fechaStr}-${String(nextNumber).padStart(4, "0")}`;
+
     // Insertar compra
     const compraRes = await client.query(
-      `INSERT INTO compra (idprov, idusuario, fecha, total)
-       VALUES ($1, $2, $3, $4) RETURNING idcompra`,
-      [idprov, idusuario || null, fecha || new Date(), total || 0]
+      `INSERT INTO compra (idprov, idusuario, fecha, total, numerocompra)
+       VALUES ($1, $2, $3, $4, $5) RETURNING idcompra, numerocompra`,
+      [idprov, idusuario || null, fecha || new Date(), total || 0, numerocompra]
     );
 
     const idcompra = compraRes.rows[0].idcompra;
@@ -26,7 +40,6 @@ exports.crearCompra = async (req, res) => {
     for (const p of productos) {
       let idproducto = p.idproducto;
 
-      // Crear producto si no existe
       if (!idproducto) {
         const prodRes = await client.query(
           `INSERT INTO producto (codigo, idcategoria, nombre, bulto, detalle, fecha_vencimiento, stock, idprov)
@@ -44,15 +57,12 @@ exports.crearCompra = async (req, res) => {
         );
         idproducto = prodRes.rows[0].idproducto;
       } else {
-      
-        // Actualizar stock existente solo sumando la cantidad nueva
         await client.query(
           `UPDATE producto SET stock = stock + $1 WHERE idproducto = $2`,
           [p.cantidad, idproducto]
         );
       }
 
-      // Insertar detalle de compra
       const detalleRes = await client.query(
         `INSERT INTO detalle_compra (idcompra, idproducto, cantidad, precio_compra, precio_unitario, descuento)
          VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
@@ -70,9 +80,18 @@ exports.crearCompra = async (req, res) => {
     }
 
     await client.query("COMMIT");
+
     res.status(201).json({
       message: "Compra registrada correctamente",
-      compra: { idcompra, idprov, idusuario, fecha, total, productos: productosGuardados },
+      compra: {
+        idcompra,
+        idprov,
+        idusuario,
+        fecha,
+        total,
+        numerocompra,
+        productos: productosGuardados,
+      },
     });
 
   } catch (error) {
@@ -83,6 +102,7 @@ exports.crearCompra = async (req, res) => {
     client.release();
   }
 };
+
 
 // ========================
 // EDITAR COMPRA EXISTENTE SIN DUPLICAR STOCK
