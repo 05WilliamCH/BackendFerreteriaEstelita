@@ -50,20 +50,28 @@ exports.obtenerDetalleCompra = async (req, res) => {
 
     const compra = compraQuery.rows[0];
 
+    // 🔹 Detalle de productos comprados (versión extendida)
     // 🔹 Detalle de productos comprados
-    const detalleQuery = await pool.query(`
-      SELECT 
-        p.codigo,
-        p.nombre,
-        dc.cantidad,
-        dc.precio_compra,
-        dc.precio_unitario,
-        dc.descuento,
-        (dc.cantidad * dc.precio_compra - dc.descuento) AS subtotal
-      FROM detalle_compra dc
-      JOIN producto p ON dc.idproducto = p.idproducto
-      WHERE dc.idcompra = $1
-    `, [compra.idcompra]);
+const detalleQuery = await pool.query(`
+  SELECT 
+    p.codigo,
+    p.nombre,
+    p.detalle,
+    p.bulto,
+    p.presentacion,
+    p.observaciones,
+    c.nombre AS categoria,
+    p.precio_venta,
+    dc.cantidad,
+    dc.precio_compra,
+    dc.precio_unitario,
+    dc.descuento,
+    (dc.cantidad * dc.precio_compra - dc.descuento) AS subtotal
+  FROM detalle_compra dc
+  JOIN producto p ON dc.idproducto = p.idproducto
+  JOIN categoria c ON p.idcategoria = c.idcategoria
+  WHERE dc.idcompra = $1
+`, [compra.idcompra]);
 
     // 🔹 Respuesta final
     res.json({

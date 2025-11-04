@@ -20,11 +20,13 @@ exports.crearCompra = async (req, res) => {
       `SELECT numerocompra FROM compra WHERE numerocompra LIKE $1 ORDER BY idcompra DESC LIMIT 1`,
       [`COMP-${fechaStr}-%`]
     );
+
     let nextNumber = 1;
     if (lastCompraRes.rows.length > 0) {
       const lastNum = lastCompraRes.rows[0].numerocompra.split("-")[2];
       nextNumber = parseInt(lastNum) + 1;
     }
+
     const numerocompra = `COMP-${fechaStr}-${String(nextNumber).padStart(4, "0")}`;
 
     // Insertar compra
@@ -37,32 +39,45 @@ exports.crearCompra = async (req, res) => {
     const idcompra = compraRes.rows[0].idcompra;
     const productosGuardados = [];
 
+    // 🔹 Recorrer productos
     for (const p of productos) {
       let idproducto = p.idproducto;
 
       if (!idproducto) {
+        // Crear producto nuevo con los nuevos campos
         const prodRes = await client.query(
-          `INSERT INTO producto (codigo, idcategoria, nombre, bulto, detalle, fecha_vencimiento, stock, idprov)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING idproducto`,
+          `INSERT INTO producto 
+           (codigo, idcategoria, nombre, bulto, detalle, presentacion, observaciones, fecha_vencimiento, stock, idprov, precio_venta)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING idproducto`,
           [
             p.codigo,
             p.idcategoria,
             p.nombre,
             p.bulto || null,
             p.detalle || null,
+            p.presentacion || null,
+            p.observaciones || null,
             p.fecha_vencimiento || null,
             p.cantidad,
             idprov,
+            p.precio_venta || 0,
           ]
         );
         idproducto = prodRes.rows[0].idproducto;
       } else {
+        // Actualizar stock y precio de venta si cambió
         await client.query(
-          `UPDATE producto SET stock = stock + $1 WHERE idproducto = $2`,
-          [p.cantidad, idproducto]
+          `UPDATE producto 
+           SET stock = stock + $1, 
+               presentacion = COALESCE($2, presentacion), 
+               observaciones = COALESCE($3, observaciones), 
+               precio_venta = COALESCE($4, precio_venta)
+           WHERE idproducto = $5`,
+          [p.cantidad, p.presentacion, p.observaciones, p.precio_venta, idproducto]
         );
       }
 
+      // Insertar detalle de compra
       const detalleRes = await client.query(
         `INSERT INTO detalle_compra (idcompra, idproducto, cantidad, precio_compra, precio_unitario, descuento)
          VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
@@ -102,7 +117,6 @@ exports.crearCompra = async (req, res) => {
     client.release();
   }
 };
-
 
 // ========================
 // EDITAR COMPRA EXISTENTE SIN DUPLICAR STOCK
@@ -144,33 +158,43 @@ exports.editarCompra = async (req, res) => {
       let idproducto = p.idproducto;
 
       if (!idproducto) {
-        // Producto nuevo → insert + stock inicial
+        // Producto nuevo
         const prodRes = await client.query(
-          `INSERT INTO producto (codigo, idcategoria, nombre, bulto, detalle, fecha_vencimiento, stock, idprov)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING idproducto`,
+          `INSERT INTO producto 
+           (codigo, idcategoria, nombre, bulto, detalle, presentacion, observaciones, fecha_vencimiento, stock, idprov, precio_venta)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING idproducto`,
           [
             p.codigo,
             p.idcategoria,
             p.nombre,
             p.bulto || null,
             p.detalle || null,
+            p.presentacion || null,
+            p.observaciones || null,
             p.fecha_vencimiento || null,
             p.cantidad,
             idprov,
+            p.precio_venta || 0,
           ]
         );
         idproducto = prodRes.rows[0].idproducto;
       } else {
-        // Producto existente → ajustar stock según diferencia
+        // Ajustar stock y actualizar datos si cambiaron
         const cantidadAnterior = stockAnteriorMap[idproducto] || 0;
-        const diferencia = p.cantidad - cantidadAnterior; // si editaste cantidad
+        const diferencia = p.cantidad - cantidadAnterior;
+
         await client.query(
-          `UPDATE producto SET stock = stock + $1 WHERE idproducto = $2`,
-          [diferencia, idproducto]
+          `UPDATE producto 
+           SET stock = stock + $1,
+               presentacion = COALESCE($2, presentacion),
+               observaciones = COALESCE($3, observaciones),
+               precio_venta = COALESCE($4, precio_venta)
+           WHERE idproducto = $5`,
+          [diferencia, p.presentacion, p.observaciones, p.precio_venta, idproducto]
         );
       }
 
-      // Insertar detalle nuevo
+      // Insertar nuevo detalle
       const detalleRes = await client.query(
         `INSERT INTO detalle_compra (idcompra, idproducto, cantidad, precio_compra, precio_unitario, descuento)
          VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,

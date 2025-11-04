@@ -58,25 +58,41 @@ exports.loginUsuario = async (req, res) => {
       return res.status(400).json({ error: "Credenciales inválidas" });
     }
 
+    const user = usuario.rows[0];
+
+    // 🚫 Verificar si el usuario está inactivo
+    if (user.estado === false || user.estado === 0) {
+      return res.status(403).json({ error: "Usuario inactivo. No puede acceder al sistema." });
+    }
+
     // Comparar contraseña
-    const validPassword = await bcrypt.compare(password, usuario.rows[0].usuario_password);
+    const validPassword = await bcrypt.compare(password, user.usuario_password);
     if (!validPassword) {
       return res.status(400).json({ error: "Credenciales inválidas" });
     }
 
     // Generar token JWT
     const token = jwt.sign(
-      { idusuario: usuario.rows[0].idusuario, idrol: usuario.rows[0].idrol },
+      { idusuario: user.idusuario, idrol: user.idrol },
       process.env.jwtSecret,
       { expiresIn: "1h" }
     );
 
-    res.json({ token, usuario: { idusuario: usuario.rows[0].idusuario, nombre: usuario.rows[0].nombre, email: usuario.rows[0].email, idrol: usuario.rows[0].idrol } });
+    res.json({
+      token,
+      usuario: {
+        idusuario: user.idusuario,
+        nombre: user.nombre,
+        email: user.email,
+        idrol: user.idrol,
+      },
+    });
   } catch (error) {
     console.error("Error al iniciar sesión:", error.message);
     res.status(500).json({ error: "Error al iniciar sesión" });
   }
 };
+
 
 // =======================
 // PERFIL DEL USUARIO LOGUEADO
