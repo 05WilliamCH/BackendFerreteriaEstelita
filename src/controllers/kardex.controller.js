@@ -6,7 +6,9 @@ exports.obtenerKardex = async (req, res) => {
 
     const query = `
       WITH movimientos AS (
+        -- =====================
         -- COMPRAS
+        -- =====================
         SELECT
           p.idproducto,
           p.codigo,
@@ -18,7 +20,9 @@ exports.obtenerKardex = async (req, res) => {
           dc.cantidad AS cantidad,
           dc.precio_compra AS precio,
           (dc.cantidad * dc.precio_compra) AS total,
-          p.stock -- <-- Solo llamamos la columna stock
+          p.stock,
+          c.numerocompra AS numerodocumento,  -- 👈 agregado
+          NULL AS numerofactura               -- 👈 solo aplica para ventas
         FROM detalle_compra dc
         INNER JOIN compra c ON c.idcompra = dc.idcompra
         INNER JOIN producto p ON p.idproducto = dc.idproducto
@@ -32,7 +36,9 @@ exports.obtenerKardex = async (req, res) => {
 
         UNION ALL
 
+        -- =====================
         -- VENTAS
+        -- =====================
         SELECT
           p.idproducto,
           p.codigo,
@@ -44,7 +50,9 @@ exports.obtenerKardex = async (req, res) => {
           dv.cantidad AS cantidad,
           dv.precio_venta AS precio,
           (dv.cantidad * dv.precio_venta) AS total,
-          p.stock -- <-- Solo llamamos la columna stock
+          p.stock,
+          NULL AS numerodocumento,            -- 👈 solo aplica para compras
+          v.numerofactura AS numerofactura    -- 👈 agregado
         FROM detalle_venta dv
         INNER JOIN venta v ON v.idventa = dv.idventa
         INNER JOIN producto p ON p.idproducto = dv.idproducto
