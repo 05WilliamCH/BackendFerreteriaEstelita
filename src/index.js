@@ -28,6 +28,8 @@ const ventaDetalleRoutes = require('./routes/ventaDetalle.route');
 
 const compraDetalleRoutes = require('./routes/compraDetalle.routes');
 
+const devolucionCompraRoutes = require('./routes/devolucioncompra.routes');
+const devolucionVentaRoutes = require('./routes/devolucionventa.routes');
 const app = express();
 
 // Middlewares
@@ -61,6 +63,9 @@ app.use('/api/inventario', inventarioRoutes);
 app.use('/api/ventas', ventaDetalleRoutes);
 
 app.use('/api/compras', compraDetalleRoutes);
+
+app.use('/api/devolucioncompra', devolucionCompraRoutes);
+app.use('/api/devolucionventa', devolucionVentaRoutes);
 
 
 // Servidor
