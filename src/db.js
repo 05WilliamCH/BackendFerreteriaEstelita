@@ -16,11 +16,10 @@ require("dotenv").config();
 
 let pool;
 
-if (process.env.DATABASE_URL) {
-  // 🔹 Entorno de producción (Railway)
+if (process.env.DATABASE_PUBLIC_URL) {
   pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }, // Railway requiere SSL
+    connectionString: process.env.DATABASE_PUBLIC_URL,
+    ssl: { rejectUnauthorized: false },
   });
 } else {
   // 🔹 Entorno local
