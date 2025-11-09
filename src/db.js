@@ -29,10 +29,12 @@ require("dotenv").config();
 let pool;
 
 if (process.env.DATABASE_PUBLIC_URL) {
+  // 🔹 Entorno de producción (Railway)
   pool = new Pool({
     connectionString: process.env.DATABASE_PUBLIC_URL,
-    ssl: { rejectUnauthorized: false },
+    ssl: { rejectUnauthorized: false }, // Railway requiere SSL
   });
+  console.log("✅ Conectando a la base de datos Railway...");
 } else {
   // 🔹 Entorno local
   pool = new Pool({
@@ -42,6 +44,7 @@ if (process.env.DATABASE_PUBLIC_URL) {
     port: process.env.PORT_DB,
     database: process.env.DATABASE,
   });
+  console.log("✅ Conectando a la base de datos local...");
 }
 
 module.exports = pool;
