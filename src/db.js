@@ -1,12 +1,36 @@
+// const { Pool } = require("pg");
+// require("dotenv").config();
+
+// const pool = new Pool({
+//   user: process.env.USER,
+//   password: process.env.PASSWORD,
+//   host: process.env.HOST,
+//   port: process.env.PORT_DB,
+//   database: process.env.DATABASE,
+// });
+
+// module.exports = pool;
+
 const { Pool } = require("pg");
 require("dotenv").config();
 
-const pool = new Pool({
-  user: process.env.USER,
-  password: process.env.PASSWORD,
-  host: process.env.HOST,
-  port: process.env.PORT_DB,
-  database: process.env.DATABASE,
-});
+let pool;
+
+if (process.env.DATABASE_URL) {
+  // 🔹 Entorno de producción (Railway)
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }, // Railway requiere SSL
+  });
+} else {
+  // 🔹 Entorno local
+  pool = new Pool({
+    user: process.env.USER,
+    password: process.env.PASSWORD,
+    host: process.env.HOST,
+    port: process.env.PORT_DB,
+    database: process.env.DATABASE,
+  });
+}
 
 module.exports = pool;
